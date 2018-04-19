@@ -1,0 +1,39 @@
+{
+  "name": "dissysproject",
+  "version": "1.0.0",
+  "description": "line like chat web app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "body-parser": "~1.17.1",
+    "bootstrap-sass": "~3.3.7",
+    "command-line-args": "^4.0.7",
+    "ejs": "~2.5.6",
+    "express": "^4.15.2",
+    "font-awesome": "~4.7.0",
+    "http-proxy": "^1.16.2",
+    "jquery": "~3.2.1",
+    "moment": "~2.18.1",
+    "morgan": "~1.8.1",
+    "redis": "^2.7.1",
+    "request": "^2.81.0",
+    "socket.io": "^1.7.3",
+    "socket.io-redis": "^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asastamp/support4carry2.git"
+  },
+  "author": "Support4Carry2Group",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/asastamp/support4carry2/issues"
+  },
+  "files.associations": {
+    "*.ejs": "html"
+  },
+  "homepage": "https://github.com/asastamp/support4carry2#readme"
+}

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Support4Carry2 CHAT ROOM</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="/css/chatstyle.css" rel="stylesheet" type="text/css"/>
+    <script type="text/javascript" src="//code.jquery.com/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
+    <link href="https://use.fontawesome.com/45e03a14ce.css" media="all" rel="stylesheet">
+    <script src="https://use.fontawesome.com/45e03a14ce.js"></script>
+</head>
+
+<body>
+
+<!-- ............................................................................... -->
+<div class="main_section">
+    <div class="container">
+        <div class="chat_container">
+            <div class="col-sm-3 chat_sidebar">
+                <div class="row">
+                    <div id="custom-search-input">
+                        <div class="input-group col-md-12">
+                            <input type="text" id="join_input" class="search-query form-control" placeholder="Join a Group" />
+                            <button id="joinButton" class="btn btn-danger" type="button">
+                            <span class="glyphicon glyphicon-search"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div id="custom-search-input">
+                        <div class="input-group col-md-12">
+                            <input type="text" id="groupid_input" class="search-query form-control" placeholder="Create a New Group" />
+                            <button id="createButton" class="btn btn-danger" type="button">
+                            <span class="glyphicon glyphicon-plus"></span>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- /////////// group_list /////////// -->
+                    <div class="member_list">
+                        <ul id="group_list" class="list-unstyled">
+                            <!-- Group Lists go here -->
+                        </ul>
+                    </div>
+                    <!-- /////////// end group_list /////////// -->
+                </div>
+            </div>
+            <!--/////////// chat_sidebar /////////// -->
+            <div class="col-sm-9 message_section">
+                <div id="chat-window" class="row">
+                    <div class="new_message_head">
+                        <b>Group: </b>
+                        <div id="group-name">
+                            <b>undefined</b>
+                        </div>
+                        <div id="dropdown-action" class="pull-right">
+                            <div class="dropdown">
+                                <button class="dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                    <i class="fa fa-cogs" aria-hidden="true"></i>  Action <span class="caret"></span>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenu1">
+                                    <li>
+                                        <div id="client-name" align="center">Signed in as: Undefined</div>
+                                    </li>
+                                    <li><br></li>
+                                    <li><a id="leave-btn" href="#">Leave Group</a></li>
+                                    <li><a id="break-btn" href="#">Break Group</a></li>
+                                    <li><a id="getunread-btn" href="#">Get Unread</a></li>
+                                    <li><a href="/">Sign Out</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /////////// new_message_head /////////// -->
+                    <div id="chat_area" class="chat_area">
+                        <ul id="message_list" class="list-unstyled">
+                            <li class="left clearfix">
+                                <span class="chat-img1 pull-left">
+                                <img src="/img/icon-user-default.png" alt="User Avatar" class="img-circle">
+                                </span>
+                                <div class="chat-body1 clearfix">
+                                    <p>Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia.</p>
+                                    <div class="chat_time pull-right">09:40PM</div>
+                                </div>
+                            </li>
+                            <li class="left clearfix admin_chat">
+                                <span class="chat-img1 pull-right">
+                                <img src="/img/icon-user-default.png" alt="User Avatar" class="img-circle">
+                                </span>
+                                <div class="chat-body1 clearfix">
+                                    <p>Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Richard McClintock, a Latin professor at Hampden-Sydney College in Virginia.</p>
+                                    <div class="chat_time pull-left">09:40PM</div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <!--chat_area-->
+                    <div class="message_write">
+                        <textarea id="chat_input" class="form-control" placeholder="type a message"></textarea>
+                        <div class="clearfix">
+                        </div>
+                        <div id="" class="chat_bottom">
+                            <a href="#" class="pull-right btn btn-success" id="send-btn">Send</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--message_section-->
+        </div>
+    </div>
+</div>
+
+<div id='modal' class="modal fade" tabindex="-1" role="dialog" aria-labelledby="ModalLabel">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div id='modal-message' align="center">...</div>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var socket = io.connect('http://localhost:8080');
+    var _countElement = 0;
+    var countRead = 0;
+
+    socket.on('connect', function (data) {
+        var clientid = window.location.pathname.split('/')[1];
+        socket.emit('login', clientid);
+        $("#client-name").text("Signed in as: " + clientid);
+    });
+
+    socket.on("add-group-list", function (groupid) {
+        if(!document.getElementById("li_" + groupid)){
+            var groupLi = $('<li class="left clearfix" id="li_'+groupid+'" onClick="linkToGroup(\''+groupid+'\')"><span class="chat-img pull-left"><canvas id="avatar_'+ groupid +'" width="40" height="40"></canvas></span><div class="chat-body clearfix"><div class="header_sec"><strong class="primary-font">'+groupid+'</strong></div><div class="contact_sec"> </div></div></li>').data('groupid', groupid);
+            $('#group_list').append(groupLi);
+            genAvatar(groupid, groupid);
+        }
+    });
+
+    socket.on('receive', function (messagepack) {
+        messagepack._countElement = _countElement++;
+        countRead++;
+        var messageLi = $('<li class="left clearfix"><span class="chat-img1 pull-left"><canvas id="avatar_'+ messagepack._countElement +'" width="40" height="40"></canvas></span><div class="chat-body1 clearfix pull-left"><p>'+ messagepack.message +'</p><div class="chat_time pull-left">'+ messagepack.time +'</div></div></li>').data('messagepack', messagepack);
+       $('#message_list').append(messageLi);
+       genAvatar(messagepack.avatarName, messagepack._countElement);
+       socket.emit('update-unread', countRead);
+       scrollToBottom();
+    });
+
+    socket.on('self_receive', function (messagepack) {
+        messagepack._countElement = _countElement++;
+        countRead++;
+        var messageLi = $('<li class="left clearfix admin_chat"><span class="chat-img1 pull-right"><canvas id="avatar_'+ messagepack._countElement +'" width="40" height="40"></canvas></span><div class="chat-body1 clearfix pull-right"><p>'+ messagepack.message +'</p><div class="chat_time pull-right">'+ messagepack.time +'</div></div></li>').data('messagepack', messagepack);
+        $('#message_list').append(messageLi);
+        genAvatar(messagepack.avatarName, messagepack._countElement);
+        socket.emit('update-unread', countRead);
+        scrollToBottom();
+    });
+
+    socket.on('receive_no_update_unread', function (messagepack) {
+        messagepack._countElement = _countElement++;
+        countRead++;
+        var messageLi = $('<li class="left clearfix"><span class="chat-img1 pull-left"><canvas id="avatar_'+ messagepack._countElement +'" width="40" height="40"></canvas></span><div class="chat-body1 clearfix pull-left"><p>'+ messagepack.message +'</p><div class="chat_time pull-left">'+ messagepack.time +'</div></div></li>').data('messagepack', messagepack);
+       $('#message_list').append(messageLi);
+       genAvatar(messagepack.avatarName, messagepack._countElement);
+       scrollToBottom();
+    });
+
+    socket.on('self_receive_no_update_unread', function (messagepack) {
+        messagepack._countElement = _countElement++;
+        countRead++;
+        var messageLi = $('<li class="left clearfix admin_chat"><span class="chat-img1 pull-right"><canvas id="avatar_'+ messagepack._countElement +'" width="40" height="40"></canvas></span><div class="chat-body1 clearfix pull-right"><p>'+ messagepack.message +'</p><div class="chat_time pull-right">'+ messagepack.time +'</div></div></li>').data('messagepack', messagepack);
+        $('#message_list').append(messageLi);
+        genAvatar(messagepack.avatarName, messagepack._countElement);
+        scrollToBottom();
+    });
+
+    socket.on('count_Read', function () {countRead++;});
+
+    socket.on('noti-receive', function (messagepack) {
+        var messageLi = $('<li class="left clearfix admin_chat"><div class="chat-body1 clearfix"><p align="center">'+ messagepack.message +'</p></div></li>').data('messagepack', messagepack);
+        $('#message_list').append(messageLi);
+        scrollToBottom();
+    });
+
+    socket.on('modal-toggle', function (message) {
+        $('#modal-message').text(message);
+    	$('#modal').modal('toggle');
+    });
+
+    socket.on('join-success', function (groupid) {
+        var chatWindow = document.getElementById('chat-window');
+	    chatWindow.style.display = 'block';
+
+	    $("#message_list").html("");
+	    $("#group-name b").text(groupid);
+
+        socket.emit('join-noti');
+    });
+
+    $('#createButton').on('click',function (e) {
+        e.preventDefault();
+        var groupid = $('#groupid_input').val();
+        $('#groupid_input').val('');
+        socket.emit('createGroup', groupid);
+    });
+
+    $('#joinButton').on('click',function (e) {
+        e.preventDefault();
+        var groupid = $('#join_input').val();
+        $('#join_input').val('');
+        linkToGroup(groupid);
+    });
+
+    $('#send-btn').on('click',function (e){
+    	e.preventDefault();
+  		var message = $('#chat_input').val();
+  		$('#chat_input').val('');
+  		socket.emit('message', message);
+  	});
+
+    $('#leave-btn').on('click',function (e){
+    	e.preventDefault();
+        var groupid = $("#group-name b").text();
+        var groupList = document.getElementById('li_' + groupid);
+        groupList.remove();
+        var chatWindow = document.getElementById('chat-window');
+	      chatWindow.style.display = 'none';
+        socket.emit('leave-group');
+  	});
+
+    $('#break-btn').on('click',function (e){
+    	e.preventDefault();
+      socket.emit('break-group');
+  	});
+    $('#getunread-btn').on('click',function (e){
+    	e.preventDefault();
+      socket.emit('getunread-group');
+  	});
+
+    $("#chat_input").keyup(function(event){
+      if(event.keyCode == 13){
+          $("#send-btn").click();
+      }
+    });
+
+    function linkToGroup(groupid){
+        _countElement = 0;
+        countRead = 0;
+        socket.emit('joinGroup', groupid);
+    }
+
+    function scrollToBottom(){
+        var elem = document.getElementById('chat_area');
+        elem.scrollTop = elem.scrollHeight;
+    }
+
+// -------------------------- Text Avatar Generator from Name  Begin ------------------------
+
+    String.prototype.hashCode = function() {
+        var hash = 0,
+            i, chr;
+        if (this.length === 0) return hash;
+        for (i = 0; i < this.length; i++) {
+            chr = this.charCodeAt(i);
+            hash = ((hash << 5) - hash) + chr;
+            hash |= 0; // Convert to 32bit integer
+        }
+        return (hash < 0) ? -hash : hash;
+    };
+
+    var colours = ["#1abc9c", "#2ecc71", "#3498db", "#9b59b6", "#34495e", "#16a085", "#27ae60", "#2980b9", "#8e44ad", "#2c3e50", "#f1c40f", "#e67e22", "#e74c3c", "#95a5a6", "#f39c12", "#d35400", "#c0392b", "#bdc3c7", "#7f8c8d"];
+
+    function genAvatar(avatarName, countElement){
+        var name = avatarName;
+        initials = name.charAt(0).toUpperCase();
+
+        var charIndex = name.hashCode(),
+            colourIndex = charIndex % 19;
+
+        var canvas = document.getElementById("avatar_"+countElement);
+        var context = canvas.getContext("2d");
+
+        var canvasWidth = $(canvas).attr("width"),
+            canvasHeight = $(canvas).attr("height"),
+            canvasCssWidth = canvasWidth,
+            canvasCssHeight = canvasHeight;
+
+        if (window.devicePixelRatio) {
+            $(canvas).attr("width", canvasWidth * window.devicePixelRatio);
+            $(canvas).attr("height", canvasHeight * window.devicePixelRatio);
+            $(canvas).css("width", canvasCssWidth);
+            $(canvas).css("height", canvasCssHeight);
+            context.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        context.fillStyle = colours[colourIndex];
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.font = "18px Arial";
+        context.textAlign = "center";
+        context.fillStyle = "#FFF";
+        context.fillText(initials, canvasCssWidth / 2, canvasCssHeight / 1.5);
+    }
+
+// -------------------------- Text Avatar Generator from Name END----------------------
+
+</script>
+</body>
+</html>
