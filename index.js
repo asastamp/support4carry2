@@ -1,9 +1,11 @@
 var app = require('express')();
 const commandLineArgs = require('command-line-args');
+
 const optionDefinitions = [
   { name: 'redis', alias: 'r', type: String,defaultValue:"localhost:6379" },
   { name: 'port', alias:'p', type: Number},
 ];
+
 const options = commandLineArgs(optionDefinitions);
 
 var redisAddress = options.redis.split(':');
@@ -26,146 +28,162 @@ var storeMessage = function(name, data, time, type, messages_group) {
         time: time,
         type: type
     });
+
+    redis.lpush(messages_group, message, function(err, response) {
+
+    });
 };
 
+
 var chatRoom = io.on('connection',function(socket){
-  console.log('Client connected...');
-  	socket.on('login',function(clientid){
-      socket.clientid = clientid;
-      socket.groupid = 'GlobalChat';
-      socket.join('GlobalChat');
-      redis.sadd("clients",clientid);
+	console.log('Client connected...');
+
+	  socket.on('login',function(clientid){
+		socket.clientid = clientid;
+		socket.groupid = 'GlobalChat';
+		socket.join('GlobalChat');
+    redis.sadd("clients",clientid);
+
 		var groupList_clientid = "group_" + clientid;
-    redis.smembers(groupList_clientid, function(err,groupList_clientid) {
-      groupList_clientid.forEach(function(groupid) {
-        socket.emit('add-group-list', groupid);
-      });
-    });
-});
 
-socket.on('createGroup',function(groupid){
-  var clientid = socket.clientid;
-  redis.sismember("groupList", groupid, function(err, reply) {
-    if (reply === 1) {
-      socket.emit('modal-toggle', "The group ID \""+ groupid +"\" already exists!");
-    } else {
-      redis.sadd("groupList",groupid);
-      redis.sadd("client_"+groupid,clientid);
-      redis.sadd("group_"+clientid,groupid);
-      socket.emit('add-group-list', groupid);
-      socket.emit('joinGroup', groupid);
-    }
-  });
-});
-
-socket.on('getunread-group',function(){
-
-});
-
-socket.on('joinGroup',function(groupid){
-  if(groupid==socket.groupid) return;
-  redis.sismember("groupList", groupid, function(err, reply) {
-    if (reply === 1) {
-      var clientid = socket.clientid;
-      var messagepack =
-        {
-          message: clientid + ' has left the chat temporally! ',
-          type: 'noti'
-        }
-      socket.broadcast.to(socket.groupid).emit('noti-receive', messagepack);
-      socket.leave(socket.groupid);
-		  socket.join(groupid);
-		  socket.groupid = groupid;
-
-      var messages_group = "messages_" + groupid;
-      var mesCount = 0;
-
-      //---------------set first time----------------
-      var firstRead = 0;
-      var key_firstRead = "first-read-"+groupid+"_"+clientid;
-      var message_length = 0;
-
-      redis.llen(messages_group,function(err, value) {
-        message_length = value+1;
-      });
-
-      console.log("message_length :  "+message_length);
-      if(redis.exists(key_firstRead)) {
-        redis.get(key_firstRead, function(err, value) {
-          if(value == -1 || value==null) {
-            redis.set(key_firstRead, message_length);
-            console.log("set1 : "+key_firstRead + "  ======  "+message_length);
-            firstRead = message_length;
-          }
-          else firstRead = value;
+        redis.smembers(groupList_clientid, function(err,groupList_clientid) {
+            groupList_clientid.forEach(function(groupid) {
+                socket.emit('add-group-list', groupid);
+        	  });
         });
-      }
-      else {
-        redis.set(key_firstRead, message_length);
-        firstRead = message_length;
-        console.log("set2 : "+key_firstRead + "  ======  "+message_length);
-      }
-      //-------------------END-----------------------
+	});
 
-      redis.get("last-read-"+groupid+"_"+clientid, function(err, value) {
-        if(isNaN(value)) {
-          var lastRead = 0;
-          redis.set("last-read-"+groupid+"_"+clientid, lastRead);
-        }
-        else
-          var lastRead = parseInt(value) + 1;
-        if (err) {
-          console.error("error last read");
-        } else {
-          redis.lrange(messages_group, 0, -1, function(err, messages) {
-          messages = messages.reverse();
-          messages.forEach(function(message) {
-            message = JSON.parse(message);
-            if(message.type === 'noti'){
+	socket.on('createGroup',function(groupid){
+		var clientid = socket.clientid;
+
+        redis.sismember("groupList", groupid, function(err, reply) {
+            if (reply === 1) {
+                socket.emit('modal-toggle', "The group ID \""+ groupid +"\" already exists!");
+            } else {
+		        redis.sadd("groupList",groupid);
+		        redis.sadd("client_"+groupid,clientid);
+		        redis.sadd("group_"+clientid,groupid);
+                socket.emit('add-group-list', groupid);
+                socket.emit('joinGroup', groupid);
+            }
+        });
+	});
+
+	socket.on('joinGroup',function(groupid){
+        if(groupid==socket.groupid) return;
+        redis.sismember("groupList", groupid, function(err, reply) {
+            if (reply === 1) {
+                var clientid = socket.clientid;
                 var messagepack =
                 {
-                  message: message.data,
-                  time: message.time,
-                  avatarName : message.name,
-                  type: message.type
+                    message: clientid + ' has left the chat temporally! ',
+                    type: 'noti'
                 }
-                socket.emit("noti-receive", messagepack);
-            }
-            else{
-              //unread message noti
-              mesCount++;
-              console.log("mesCount "+ mesCount + " lastRead" + lastRead);
-              if(mesCount == lastRead) {
-                console.log("detect unRead of "+ clientid + lastRead);
-                var messagepack =
-                  {
-                    message: "unread messages below."
-                  }
-                socket.emit("noti-receive", messagepack);
-              }
-              var messagepack =
-                {
-                  message: message.name + ': ' + message.data,
-                  time: message.time,
-                  avatarName : message.name,
-                  type: message.type
+                socket.broadcast.to(socket.groupid).emit('noti-receive', messagepack);
+                socket.leave(socket.groupid);
+
+		        socket.join(groupid);
+		        socket.groupid = groupid;
+
+                var messages_group = "messages_" + groupid;
+                var mesCount = 0;
+
+                //---------------set first time----------------
+                var firstRead = 0;
+                var key_firstRead = "first-read-"+groupid+"_"+clientid;
+                var message_length = 0;
+
+                redis.llen(messages_group,function(err, value) {
+                    message_length = value+1;
+                });
+
+                console.log("message_length :  "+message_length);
+                if(redis.exists(key_firstRead)) {
+                    redis.get(key_firstRead, function(err, value) {
+                        if(value == -1 || value==null) {
+                            redis.set(key_firstRead, message_length);
+                            console.log("set1 : "+key_firstRead + "  ======  "+message_length);
+                            firstRead = message_length;
+                        }
+                        else firstRead = value;
+                    });
                 }
-              if (mesCount >= firstRead) {
-                if(message.name == socket.clientid)
-                  socket.emit("self_receive_no_update_unread", messagepack);
-                else
-                  socket.emit("receive_no_update_unread", messagepack);
-              }
-              else socket.emit("count_Read");
-            }
-            redis.set("last-read-"+groupid+"_"+clientid, mesCount);
-          });
-        });
-      }
-  });
+                else {
+                    redis.set(key_firstRead, message_length);
+                    firstRead = message_length;
+                    console.log("set2 : "+key_firstRead + "  ======  "+message_length);
+                }
+                //-------------------END-----------------------
+
+
+                redis.get("last-read-"+groupid+"_"+clientid, function(err, value) {
+                    if(isNaN(value))
+                    {
+                        var lastRead = 0;
+                        redis.set("last-read-"+groupid+"_"+clientid, lastRead);
+                    }
+                    else
+                        var lastRead = parseInt(value) + 1;
+
+                    if (err) {
+                        console.error("error last read");
+                    } else {
+                        redis.lrange(messages_group, 0, -1, function(err, messages) {
+                        messages = messages.reverse();
+
+                        messages.forEach(function(message) {
+                            message = JSON.parse(message);
+                            if(message.type === 'noti')
+                            {
+                                var messagepack =
+                                {
+                                    message: message.data,
+                                    time: message.time,
+                                    avatarName : message.name,
+                                    type: message.type
+                                }
+                                socket.emit("noti-receive", messagepack);
+                            }
+                            else
+                            {
+                                //unread message notification
+                                mesCount++;
+                                console.log("mesCount "+ mesCount + " lastRead" + lastRead);
+
+                                    if(mesCount == lastRead)
+                                    {
+                                        console.log("detect unRead of "+ clientid + lastRead);
+                                        var messagepack =
+                                        {
+                                            message: "unread messages below."
+                                        }
+                                        socket.emit("noti-receive", messagepack);
+                                    }
+
+                                    var messagepack =
+                                    {
+                                        message: message.name + ': ' + message.data,
+                                        time: message.time,
+                                        avatarName : message.name,
+                                        type: message.type
+                                    }
+                                if (mesCount >= firstRead) {
+                                    if(message.name == socket.clientid)
+                                        socket.emit("self_receive_no_update_unread", messagepack);
+                                    else
+                                        socket.emit("receive_no_update_unread", messagepack);
+                                }
+                                else socket.emit("count_Read");
+                            }
+                            redis.set("last-read-"+groupid+"_"+clientid, mesCount);
+                            });
+                        });
+                    }
+                });
+
                 redis.sadd("groupList",groupid);
-    		        redis.sadd("client_"+groupid,clientid);
-    		        redis.sadd("group_"+clientid,groupid);
+		            redis.sadd("client_"+groupid,clientid);
+		            redis.sadd("group_"+clientid,groupid);
                 socket.emit('add-group-list', groupid);
                 socket.emit('join-success', groupid);
 
@@ -174,7 +192,7 @@ socket.on('joinGroup',function(groupid){
                 socket.emit('modal-toggle', "The group ID \""+ groupid +"\" does not exist!");
             }
         });
-  });
+	});
 
 	socket.on('message',function(message){
         var clientid = socket.clientid;
@@ -207,30 +225,8 @@ socket.on('joinGroup',function(groupid){
                 }
         socket.broadcast.to(groupid).emit('noti-receive', messagepack);
 	});
-    socket.on('break-group',function(groupid){
-      var clientid = socket.clientid;
-      var groupid = socket.groupid;
-      var time = moment().format('HH:mm:ss');
-      var messagepack =
-        {
-          message: clientid + ' has left the chat temporally! ',
-          type: 'noti'
-        }
-      socket.broadcast.to(groupid).emit('noti-receive', messagepack);
-      socket.leave(socket.groupid);
-    });
-    socket.on('getunread-group',function(){
-      var clientid = socket.clientid;
-      var groupid = socket.groupid;
-      var time = moment().format('HH:mm:ss');
-      var messagepack =
-        {
-          message: clientid + ' come back! ',
-          type: 'noti'
-        }
-      socket.broadcast.to(groupid).emit('noti-receive', messagepack);
-      socket.join(groupid);
-    });
+
+
     socket.on('leave-group',function(){
         var clientid = socket.clientid;
         var groupid = socket.groupid;
@@ -241,10 +237,9 @@ socket.on('joinGroup',function(groupid){
                      type: 'noti'
         }
         socket.broadcast.to(groupid).emit('noti-receive', messagepack);
-        //redis stuff
-    		redis.srem("client_"+groupid,clientid);
-    		redis.srem("group_"+clientid,groupid);
-    		socket.leave(socket.groupid);
+		    redis.srem("client_"+groupid,clientid);
+		    redis.srem("group_"+clientid,groupid);
+		    socket.leave(socket.groupid);
         socket.join('GlobalChat');
         socket.groupid = 'GlobalChat';
 
@@ -253,9 +248,9 @@ socket.on('joinGroup',function(groupid){
 	});
 
     socket.on('update-unread', function(value){
-		    redis.set("last-read-"+socket.groupid+"_"+socket.clientid, value);
+		redis.set("last-read-"+socket.groupid+"_"+socket.clientid, value);
         console.log("last read of" + socket.clientid + " " + value);
-	  });
+	});
 
 	socket.on('disconnect',function(data){
         var messagepack =

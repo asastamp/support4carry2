@@ -13,16 +13,22 @@
     <script type="text/javascript" src="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/js/bootstrap.min.js"></script>
     <link href="https://use.fontawesome.com/45e03a14ce.css" media="all" rel="stylesheet">
     <script src="https://use.fontawesome.com/45e03a14ce.js"></script>
+    <link rel="stylesheet" type="text/css" href="public/css/chat_css.css">
+    <script src="public/js/chat_js.js"></script>
 </head>
 
 <body>
-
 <!-- ............................................................................... -->
+<div class="p-3 mb-2 bg-success text-white">
+  <h1><center> Support4Carry2 LIKE CHAT </center></h1>
+</div>
 <div class="main_section">
+
     <div class="container">
+
         <div class="chat_container">
             <div class="col-sm-3 chat_sidebar">
-                <div class="row">
+                <div class="row" >
                     <div id="custom-search-input">
                         <div class="input-group col-md-12">
                             <input type="text" id="join_input" class="search-query form-control" placeholder="Join a Group" />
@@ -48,7 +54,9 @@
                         </ul>
                     </div>
                     <!-- /////////// end group_list /////////// -->
+
                 </div>
+
             </div>
             <!--/////////// chat_sidebar /////////// -->
             <div class="col-sm-9 message_section">
@@ -69,8 +77,6 @@
                                     </li>
                                     <li><br></li>
                                     <li><a id="leave-btn" href="#">Leave Group</a></li>
-                                    <li><a id="break-btn" href="#">Break Group</a></li>
-                                    <li><a id="getunread-btn" href="#">Get Unread</a></li>
                                     <li><a href="/">Sign Out</a></li>
                                 </ul>
                             </div>
@@ -235,14 +241,8 @@
         socket.emit('leave-group');
   	});
 
-    $('#break-btn').on('click',function (e){
-    	e.preventDefault();
-      socket.emit('break-group');
-  	});
-    $('#getunread-btn').on('click',function (e){
-    	e.preventDefault();
-      socket.emit('getunread-group');
-  	});
+
+
 
     $("#chat_input").keyup(function(event){
       if(event.keyCode == 13){
