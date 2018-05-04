@@ -3,6 +3,7 @@
   margin: 0;
   padding: 10px;
 }
+
    #custom-search-input .search-query {
    background: #fff none repeat scroll 0 0 !important;
    border-radius: 4px;
@@ -25,7 +26,7 @@
    z-index: 9999;
    }
    .search-query:focus + button {
-   z-index: 3;   
+   z-index: 3;
    }
    .all_conversation button {
    background: #f5f3f3 none repeat scroll 0 0;
@@ -216,6 +217,6 @@
     display: none;
 }
 
-canvas { 
+canvas {
   border-radius: 50%;
 }

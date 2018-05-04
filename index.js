@@ -1,12 +1,10 @@
 var app = require('express')();
 const commandLineArgs = require('command-line-args');
 
-const optionDefinitions = [
+const options = commandLineArgs([
   { name: 'redis', alias: 'r', type: String,defaultValue:"localhost:6379" },
   { name: 'port', alias:'p', type: Number},
-];
-
-const options = commandLineArgs(optionDefinitions);
+]);
 
 var redisAddress = options.redis.split(':');
 var redis = require('redis').createClient({host:redisAddress[0],port:redisAddress[1]});
@@ -76,7 +74,7 @@ var chatRoom = io.on('connection',function(socket){
                 var clientid = socket.clientid;
                 var messagepack =
                 {
-                    message: clientid + ' has left the chat temporally! ',
+                    message: clientid + ' break group ',
                     type: 'noti'
                 }
                 socket.broadcast.to(socket.groupid).emit('noti-receive', messagepack);
@@ -114,7 +112,6 @@ var chatRoom = io.on('connection',function(socket){
                     console.log("set2 : "+key_firstRead + "  ======  "+message_length);
                 }
                 //-------------------END-----------------------
-
 
                 redis.get("last-read-"+groupid+"_"+clientid, function(err, value) {
                     if(isNaN(value))
@@ -226,7 +223,6 @@ var chatRoom = io.on('connection',function(socket){
         socket.broadcast.to(groupid).emit('noti-receive', messagepack);
 	});
 
-
     socket.on('leave-group',function(){
         var clientid = socket.clientid;
         var groupid = socket.groupid;
@@ -261,7 +257,6 @@ var chatRoom = io.on('connection',function(socket){
         socket.broadcast.to(socket.groupid).emit('noti-receive', messagepack);
 		socket.leave(socket.groupid);
 	});
-
 
 });
 

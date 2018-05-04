@@ -1,0 +1,11 @@
+[
+    {
+        "auth": "",
+        "host": "127.0.0.1",
+        "name": "support4carry2",
+        "port": 6379,
+        "ssh_port": 22,
+        "timeout_connect": 60000,
+        "timeout_execute": 60000
+    }
+]
